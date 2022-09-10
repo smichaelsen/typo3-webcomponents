@@ -1,0 +1,18 @@
+{
+	"name": "smic/webcomponents",
+	"type": "typo3-cms-extension",
+	"description": "Render Web Components",
+	"extra": {
+		"typo3/cms": {
+			"extension-key": "webcomponents"
+		}
+	},
+	"autoload": {
+		"psr-4": {
+			"Smic\\Webcomponents\\": "Classes/"
+		}
+	},
+	"require": {
+		"ext-json": "*"
+	}
+}
