@@ -68,6 +68,7 @@ class WebcomponentContentObject extends AbstractContentObject
             $tagBuilder->addAttribute($key, $value);
         }
         $tagBuilder->forceClosingTag(true);
-        return $tagBuilder->render();
+        $renderedTag = $tagBuilder->render();
+        return $this->cObj->stdWrap($renderedTag, $conf['stdWrap.'] ?? []);
     }
 }
