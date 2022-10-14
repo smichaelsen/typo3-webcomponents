@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Smic\Webcomponents\ContentObject;
 
 use Smic\Webcomponents\DataProvider\DataProviderInterface;
+use Smic\Webcomponents\Rendering\WebcomponentRenderer;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Frontend\ContentObject\AbstractContentObject;
 use TYPO3Fluid\Fluid\Core\ViewHelper\TagBuilder;
@@ -17,10 +18,10 @@ class WebcomponentContentObject extends AbstractContentObject
         $properties = null;
         $content = null;
 
-        $inputData = $this->cObj->data ?? [];
+        $inputData = array_merge($this->cObj->data ?? [], $conf['inputData.'] ?? []);
 
         // Method 1: Evaluate dataProvider
-        if ($conf['dataProvider']) {
+        if (isset($conf['dataProvider'])) {
             $dataProvider = GeneralUtility::makeInstance($conf['dataProvider']);
             if ($dataProvider instanceof DataProviderInterface) {
                 $dataProvider->setInputData($inputData);
@@ -32,18 +33,19 @@ class WebcomponentContentObject extends AbstractContentObject
         }
 
         // Method 2: Evaluate TypoScript configuration
-        if ($conf['properties.']) {
+        if (isset($conf['properties.'])) {
             if (!is_array($properties)) {
                 $properties = [];
             }
-            foreach ($conf['properties.'] as $key => $value) {
-                if (is_array($value)) {
-                    continue;
-                }
-                $properties[$key] = $this->cObj->cObjGetSingle($value, $conf['properties.'][$key . '.']);
+            $keys = array_unique(array_map(fn (string $key) => rtrim($key, '.'), array_keys($conf['properties.'])));
+            foreach ($keys as $key) {
+                $properties[$key] = $this->cObj->stdWrap(
+                    $conf['properties.'][$key] ?? '',
+                    $conf['properties.'][$key . '.'] ?? []
+                );
             }
         }
-        if ($conf['tagName'] || $conf['tagName.']) {
+        if (isset($conf['tagName']) || isset($conf['tagName.'])) {
             $tagName = $this->cObj->stdWrap($conf['tagName'] ?? '', $conf['tagName.'] ?? []) ?: null;
         }
 
@@ -53,22 +55,20 @@ class WebcomponentContentObject extends AbstractContentObject
         }
 
         // Render
-        $tagBuilder = GeneralUtility::makeInstance(TagBuilder::class);
-        $tagBuilder->setTagName($tagName);
+        $renderer = GeneralUtility::makeInstance(WebcomponentRenderer::class, $tagName);
         if (!empty($content)) {
-            $tagBuilder->setContent($content);
+            $renderer->setContent($content);
         }
-        foreach ($properties as $key => $value) {
-            if ($value === null) {
-                continue;
+        $renderer->addAttributes($properties);
+
+        if (isset($conf['slot']) || isset($conf['slot.'])) {
+            $slot = $this->cObj->stdWrap($conf['slot'] ?? '', $conf['slot.'] ?? []) ?: null;
+            if (!empty($slot)) {
+                $renderer->setSlot($slot);
             }
-            if (!is_scalar($value)) {
-                $value = json_encode($value);
-            }
-            $tagBuilder->addAttribute($key, $value);
         }
-        $tagBuilder->forceClosingTag(true);
-        $renderedTag = $tagBuilder->render();
+        
+        $renderedTag = $renderer->render();
         return $this->cObj->stdWrap($renderedTag, $conf['stdWrap.'] ?? []);
     }
 }
