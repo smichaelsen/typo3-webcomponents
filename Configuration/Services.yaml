@@ -3,3 +3,9 @@ services:
     autowire: true
     autoconfigure: true
     public: false
+
+  # Content Element registration for TYPO3 v12. For v11 and older see ext_localconf.php
+  Smic\Webcomponents\ContentObject\WebcomponentContentObject:
+    tags:
+      - name: frontend.contentobject
+        identifier: 'WEBCOMPONENT'
